@@ -1,0 +1,31 @@
+{
+  "name": "speedfly",
+  "version": "1.0.0",
+  "description": "speedfly ",
+  "main": "test",
+  "scripts": {
+    "test": "ok",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4antech/speedfly.git"
+  },
+  "keywords": [
+    "spd"
+  ],
+  "author": "Dk & SS",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/4antech/speedfly/issues"
+  },
+  "homepage": "https://github.com/4antech/speedfly#readme",
+  "dependencies": {
+    "crc": "^3.8.0",
+    "npm": "^7.19.0",
+    "onoff": "^6.0.3",
+    "pigpio": "^3.3.1",
+    "rpi-gpio": "^2.1.7",
+    "serialport": "^9.0.7"
+  }
+}
