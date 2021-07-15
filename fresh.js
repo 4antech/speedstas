@@ -71,6 +71,7 @@ const conf = {
 var state = {
 	 enc : {1:0,2:0},
 	move : {1:-1,2:-1},
+	xstop: {1:0,2:0},
 	speed: {1:0,2:0},
 	last : {1:0,2:0},
 	  tm : {1:0,2:0},
@@ -169,10 +170,11 @@ port.on('open', () => {
 
 //	port.write("1|11|15|1|7|z\n"); // 1 - INIT 2,3 encoders,4,5 motors,6 - debug
 	consolelog('* SerialPort ok');
-	setTimeout(()=>{
-	port.write("1|11|15|1|7|3|z\n")},100);
-//	port.write("1|11|15|2\n")},100);
-    });
+	setTimeout(()=>{port.write("1|11|15|1|7|3|z\n")},50);
+//	setTimeout(()=>{port.write("2|1|1|5|z\n")},200);
+//	setTimeout(()=>{port.write("2|1|0|5|z\n")},400);
+//	setTimeout(()=>{port.write("2|1|0|0|z\n")},500);
+	    });
 
 
 var vect = [1,1,1];
@@ -432,7 +434,7 @@ if (pos == -2) {
 
 if (speed>0) state.move[xen] = 1; else state.move[xen] = 0;
 
-//console.log("move",can,state.move[xen],Math.abs(Math.trunc(speed/10)));
+console.log("move",can,state.move[xen],Math.abs(Math.trunc(speed/10)));
 xmove(can,state.move[xen],Math.abs(Math.trunc(speed/10)));
 
 return;
@@ -449,20 +451,25 @@ if (speed==0) {
 //if (state.move[xen]) stop[xen] = state.enc[xen]+pos-20; else stop[xen] = state.enc[xen]-pos+36;
 
 
-koeff = Math.abs(Math.trunc(speed/100));
+koeff = Math.abs(Math.trunc(speed/100))|1;
+
 if (state.enc[xen]>stop[xen]) {
 
 		state.move[xen] = 0; 
-		
-
+					
+//				xxpos = pos-koeff*100;
 
 
 			} else { 
 
 		state.move[xen] = 1;
+//				xxpos = pos+koeff*100;
+
 }
 
 if (abs) stop[xen]=pos; else stop[xen] = state.enc[xen]+pos;
+
+state.xstop[xen] = state.enc[xen]+pos+koeff*100;
 
 xmove(can,state.move[xen],Math.abs(Math.trunc(speed/10)));
 //console.log(stop[xen],can,state.move[xen],Math.abs(Math.trunc(speed/10)));
@@ -479,14 +486,25 @@ function xmove(can_address,ccw,speed) {
 function checkStop(v) {
 
 if (stop[v]>=0) {
+if (v!=1) mot = 7; else mot = 1;
+
 //console.log("-----",stop[v],state.enc[v], state.move[v]);
+/*
+if (state.xstop[v]) {
+if (state.move[v]==1 && state.enc[v]>state.xstop[v] || state.move[v] == 0 && state.enc[v]<state.xstop[v]) {
+port.write("2|"+mot+"|4|z\n");
+console.log(">>>>>>>>>>>>>>>>> PRESTOP",state.xstop[v]);
+state.xstop[v] = 0;
+}
+}
+*/
 
 if (state.move[v]==1 && state.enc[v]>stop[v] || state.move[v] == 0 && state.enc[v]<stop[v]) {
-if (v!=1) mot = 7; else mot = 1;
 console.log("stop");
 ostop[v] = stop[v];
 stop[v] = -1;
 port.write("2|"+mot+"|0|z\n");
+
 state.move[v] = -1;
 state.speed[v] = 0;
 }
