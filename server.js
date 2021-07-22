@@ -33,10 +33,10 @@ const server = dgram.createSocket('udp4');
 const fs = require("fs");
 const {Worker, workerData} = require('worker_threads')
 
-const len = 30;
+const len = 50;
 const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * len);
 const sharedArray = new Int32Array(sharedBuffer);
-for (i=0;i<30;i++) Atomics.store(sharedArray, i, 0);
+for (i=0;i<len;i++) Atomics.store(sharedArray, i, 0);
 Atomics.store(sharedArray,24,version); // SET VERSION
 
 function updateBit(number, bitPosition, bitValue) {
@@ -295,7 +295,7 @@ pr = new Promise(function(resolv,reject){
 
 	ovect[en] = vect[en]; if (state.enc[en]>state.last[en]) vect[en]=1; else vect[en]=0;
 	if (state.last[en]==state.enc[en] || (Math.abs(state.last[en]-state.enc[en])==1) && vect[en]!=ovect[en]) { 
-	    state.enc[en]=state.last[en];
+//	    state.enc[en]=state.last[en];
 	return 0;  								// Антидребезг ;)
 	} 
 
@@ -371,7 +371,7 @@ Aзимут - // 16566 - 63229
 */
 
 const kf = 360*60/65536;
-
+var xshift = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 pr.then((en)=>{
 	
 	state.ltm[en] = state.tm[en];
@@ -380,9 +380,9 @@ pr.then((en)=>{
 //  speed
 
 //	xshift = Math.abs(state.last[en] - state.enc[en]);
-	xshift = (state.last[en] - state.enc[en]);
+	xshift[en] = (state.last[en] - state.enc[en]);
 	xtimes = state.tm[en] - state.ltm[en];
-	speed = Math.trunc((xshift/xtimes)*1000);
+	speed = Math.trunc((xshift[en]/xtimes)*1000);
 
 // --- /speed
 
@@ -409,13 +409,28 @@ pr.then((en)=>{
 	
 	for (i=1;i<10;i++) {
 	if (xstatus[i]!=0) {
-		if (i==7) {
-		bits = Atomics.load(sharedArray,16);
-			if (bits!=0) Atomics.notify(sharedArray,i);
-//			console.log("======",sharedArray);
-		} else {
-		Atomics.notify(sharedArray,i);
-		if (xstatus[i]>0) xstatus[i]--;
+	
+	
+		switch(i) {
+		case 1: 
+		case 3:
+				if (xshift[1]) Atomics.notify(sharedArray,i);  
+		break;
+		case 2: 
+		case 4:
+				if (xshift[2]) Atomics.notify(sharedArray,i); 
+		 
+		break;		
+		case 7:
+				bits = Atomics.load(sharedArray,16);
+				if (bits!=0) Atomics.notify(sharedArray,i);
+	//			console.log("======",sharedArray);
+		
+		break;
+		default:
+				Atomics.notify(sharedArray,i);
+				if (xstatus[i]>0) xstatus[i]--;
+		break;
 		}
 	}}
 });
@@ -491,11 +506,13 @@ if (speed==0) {
 if (abs) stop[xen] = pos; else stop[xen] = state.enc[xen]+pos
 
 koff = Math.abs(Math.trunc(speed/100))|1;
+stepleft = 16;
+stepright = 36;
 
 if (xen==1) {
 if (state.enc[xen]>stop[xen]) {
 		state.move[xen] = 0; 
-		if (abs) state.xstop[xen] = pos+koff*60; else	state.xstop[xen] = state.enc[xen]+pos+koff*25;
+		if (abs) state.xstop[xen] = pos+koff*60; else	state.xstop[xen] = state.enc[xen]+pos+koff*16+stepright;
 					
 //				xxpos = pos-koeff*100;
 
@@ -503,7 +520,7 @@ if (state.enc[xen]>stop[xen]) {
 			} else { 
 //		stop[xen] = state.enc[xen]+pos;
 		state.move[xen] = 1;
-		if (abs) state.xstop[xen] = pos-koff*60; else	state.xstop[xen] = state.enc[xen]+pos-koff*60;
+		if (abs) state.xstop[xen] = pos-koff*60; else	state.xstop[xen] = state.enc[xen]+pos-koff*36-stepleft;
 //				xxpos = pos+koeff*100;
 }
 } else  {
@@ -511,13 +528,13 @@ if (state.enc[xen]>stop[xen]) {
 //console.log(state.enc[xen],stop[xen]);
 if (state.enc[xen]>stop[xen]) {
 		state.move[xen] = 0; 
-		if (abs) state.xstop[xen] = pos+koff*60; else	state.xstop[xen] = state.enc[xen]+pos+koff*25;
+		if (abs) state.xstop[xen] = pos+koff*60; else	state.xstop[xen] = state.enc[xen]+pos+koff*16+stepright;
 					
 //				xxpos = pos-koeff*100;
 			} else { 
 //		stop[xen] = state.enc[xen]+pos;
 		state.move[xen] = 1;
-		if (abs) state.xstop[xen] = pos-koff*60; else	state.xstop[xen] = state.enc[xen]+pos-koff*60;
+		if (abs) state.xstop[xen] = pos-koff*60; else	state.xstop[xen] = state.enc[xen]+pos-koff*36-stepleft;
 //				xxpos = pos+koeff*100;
 }
 }
@@ -620,10 +637,10 @@ if (message[0]!=126 || message[message.length-3]!=127 ) return 2
 
     if (cmd==4) {
     xxstop = state.enc[1]+arg[1];
-    if (xxstop<AZ_SOFTLIMIT_CW || xxstop>AZ_SOFTLIMIT_CCW) {console.log("! error out of range "); return 1;}
+    if (xxstop<AZ_SOFTLIMIT_CW || xxstop>AZ_SOFTLIMIT_CCW) {console.log("! error out of range : ",xxstop); return 1;}
     } else {
     xxstop = state.enc[2]+arg[1];
-    if (xxstop<EL_SOFTLIMIT_DOWN || xxstop>EL_SOFTLIMIT_UP) {console.log("! error out of range "); return 1;}
+    if (xxstop>EL_SOFTLIMIT_DOWN || xxstop<EL_SOFTLIMIT_UP) {console.log("! error out of range : ",xxstop); return 1;}
     }
 
     if (arg[1]<-65535 || arg[1]>65535 || arg[2]<0 || arg[2]>1000) {consolelog("! error args");return 1;}
@@ -832,16 +849,21 @@ server.on('message', function (message, remote) {
 	switch (command) {
 		case 0 : if (!xtempl) {console.log('Error opening'); break;}
 			Atomics.store(sharedArray,xtempl,((message[5]*256) + message[6])); // PORT
+			Atomics.store(sharedArray,30+xtempl,1); // PORT
+		
 			Atomics.notify(sharedArray,xtempl);
 			xxport[xtempl] = remote.port;
 			var stat = -1;
 		    if (message[4]) stat = message[4]-1;
 			xstatus[xtempl]=stat;
+
 		    break;
 		case 1 :
 		     if (!xtempl) {consolelog('Error closing '); break;}
 		    xstatus[xtempl]=0;
 		     xxport[xtempl]=0;
+			Atomics.store(sharedArray,30+xtempl,0); // PORT
+
 		break;
 		case 2 :
 	
@@ -866,7 +888,7 @@ server.on('message', function (message, remote) {
 			smove(1,arg[1],arg[2],false);
 		break;
 		case 5 :
-		
+			console.log(">>>",arg);
 		break;
 		case 6 :
 
@@ -889,6 +911,11 @@ server.on('message', function (message, remote) {
 //			Atomics.store(sharedArray,27,arg[2]);
 //			console.log(">>>",arg);
 			smove(7,arg[1],arg[2],false);
+		break;
+		case 12 :
+
+		smove(7,-2,arg[1],false);
+
 		break;
 
 	

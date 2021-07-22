@@ -131,7 +131,7 @@ function send() {
   client.send(packetResponse1, 0, packetResponse1.length, port, 
   addr, function(err, bytes) {
     if (err) throw err;
-    consolelog('> snt UDP  message response to ' + 
+    consolelog(index+' > snt UDP  message response to ' + 
       addr + ':' + 
       port +' [' + 
       hexdump(packetResponse1) + ']');
@@ -142,8 +142,13 @@ function send() {
 }
 
 
-xtimer = setInterval(()=>{ //						MAIN THROTTLE
+xtimer = setInterval(()=>{ //	MAIN THROTTLE
 	Atomics.wait(sharedArray,index,0);
+	if (sharedArray[30+index]) {
+		Atomics.store(sharedArray,(30+index),0);
+		counter = 0;
+		console.log("RESET COUNTER ",index);
+	}
 	if (sharedArray[index] && port!=sharedArray[index]) {
 	addr = int2ip(Atomics.load(sharedArray,0));
 	port = Atomics.load(sharedArray,index);
