@@ -73,44 +73,14 @@ myclient.on('message', function (message, remote) {
 });
 
 /////////end events //////////
-var message = new Buffer.from('1234567890000000000000000000');
+var message = new Buffer.from('1234567');
 message[0]=0x7e;         // start byte
 message[1]=packn & 0xff; // packet number
-message[2]=14;            // cmd
-
-message[3]=0;           //stream number max
-message[4]=0;          //max
-message[5]=100;           //stream number max
-message[6]=10;          //max
-
-message[7]=0;           //stream number max
-message[8]=0;          //max
-message[9]=100;           //stream number max
-message[10]=11;          //max
-
-message[11]=0;           //stream number max
-message[12]=0;          //max
-message[13]=100;           //stream number max
-message[14]=12;          //max
-
-message[15]=0;           //stream number max
-message[16]=0;          //max
-message[17]=100;           //stream number max
-message[18]=13;          //max
-
-message[19]=0;           //stream number max
-message[20]=0;          //max
-message[21]=100;           //stream number max
-message[22]=14;          //max
-
-message[23]=0;           //stream number max
-message[24]=0;          //max
-message[25]=100;           //stream number max
-message[26]=15;          //max
-
-
-
-message[27]=0x7f;         // stop byte
+message[2]=1;            // cmd
+message[3]=7;           //stream number max
+message[4]=0x7f;         // stop byte
+message[5]=1;            // patern
+message[6]=1;         // stop byte
 
 // bind serever//////////////////////////////////////////////////////
 myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
@@ -118,8 +88,7 @@ myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
   var address = myserver.address();    
   consolelog('# Server binded @'+address.address+':'+address.port);
   //sending message:
-    console.log("snt>",message);
-  myclient.send(message, 0, 28, OPU_SERVER_PORT, OPU_SERVER_HOST, function(err, bytes) {
+  myclient.send(message, 0, message.length, OPU_SERVER_PORT, OPU_SERVER_HOST, function(err, bytes) {
     //after sending message:
     if (err) throw err;
     ts = new Date();

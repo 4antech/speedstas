@@ -73,7 +73,7 @@ myclient.on('message', function (message, remote) {
 });
 
 /////////end events //////////
-var message = new Buffer.from('123456789');
+var message = new Buffer.from('12345678911');
 message[0]=0x7e;         // start byte
 message[1]=packn & 0xff; // packet number
 message[2]=0;            // cmd
@@ -81,8 +81,10 @@ message[3]=0;           //stream number max
 message[4]=0;          //max
 message[5]=(MY_SERVER_PORT & 0xFF00)>>8;  // big 
 message[6]= MY_SERVER_PORT & 0xFF;         // little
-message[7]=3;            // patern
+message[7]=5;            // patern
 message[8]=0x7f;         // stop byte
+message[9]=1;            // patern
+message[10]=1;         // stop byte
 
 // bind serever//////////////////////////////////////////////////////
 myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
@@ -90,7 +92,7 @@ myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
   var address = myserver.address();    
   consolelog('# Server binded @'+address.address+':'+address.port);
   //sending message:
-  myclient.send(message, 0, 9, OPU_SERVER_PORT, OPU_SERVER_HOST, function(err, bytes) {
+  myclient.send(message, 0, message.length, OPU_SERVER_PORT, OPU_SERVER_HOST, function(err, bytes) {
     //after sending message:
     if (err) throw err;
     ts = new Date();

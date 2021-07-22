@@ -28,26 +28,11 @@ var myserver = dgram.createSocket('udp4');
 var ts = new Date();
 
 var packn = 1;
-var incmd = 2; // 0..11
-var target = 5000;
-var speed  = 10; 
-var cmd =incmd.toString(16); // 00..0a
-
-var message = new Buffer(8)
-message[0]=0x7e;
-message[1]=incmd;
-message[4]=(target & 0x00ff0000)>>16;
-message[3]=(target & 0x0000ff00)>>8;
-message[2]=target  & 0x000000ff;
-message[6]=(speed  & 0xff00)>>8;
-message[5]=speed   & 0x00ff;
-message[7]=0x7f;
-
-
-
-
-
-
+var cmd = 0; // 0..11
+var max = 100000000;
+var pattern = 1;
+var tmp=0;
+var tmp0=0;
 
 function hexdump(msg){  
   var tmpstr='.';
@@ -89,24 +74,24 @@ myclient.on('message', function (message, remote) {
 
 /////////end events //////////
 var message = new Buffer.from('12345678911');
-var buffer = new Buffer.from('4444');
-
 message[0]=0x7e;         // start byte
 message[1]=packn & 0xff; // packet number
-message[2]=2;            // cmd
+message[2]=0;            // cmd
+message[3]=0;           //stream number max
+message[4]=0;          //max
+message[5]=(MY_SERVER_PORT & 0xFF00)>>8;  // big 
+message[6]= MY_SERVER_PORT & 0xFF;         // little
+message[7]=7;            // patern
+message[8]=0x7f;         // stop byte
+message[9]=1;            // patern
+message[10]=1;         // stop byte
 
-message[3]=0x00;           //stream number max
-message[4]=0x00;          //max
-message[5]=0x01;         // big 
-message[6]=0x11;         // little
-
-message[7]=0x01;            // patern
-message[8]=0xFF;            // patern
-
-message[9]=0x7f;         // stop byte
-
-
-
+// bind serever//////////////////////////////////////////////////////
+myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
+  //after binding:
+  var address = myserver.address();    
+  consolelog('# Server binded @'+address.address+':'+address.port);
+  //sending message:
   myclient.send(message, 0, message.length, OPU_SERVER_PORT, OPU_SERVER_HOST, function(err, bytes) {
     //after sending message:
     if (err) throw err;
@@ -114,15 +99,6 @@ message[9]=0x7f;         // stop byte
     consolelog('* Start command. Open new infostreeam ');
     consolelog('> SND UDP client message [' +hexdump(message)+ '] sent to ' + OPU_SERVER_HOST +':'+ OPU_SERVER_PORT);
   });
-
-
-/*
-// bind serever//////////////////////////////////////////////////////
-myserver.bind(MY_SERVER_PORT, MY_SERVER_HOST, function(){
-  //after binding:
-  var address = myserver.address();    
-  consolelog('# Server binded @'+address.address+':'+address.port);
-  //sending message:
   //
 });
 /*  */

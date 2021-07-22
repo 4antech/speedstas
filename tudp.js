@@ -21,7 +21,8 @@ const tpl	= threads.workerData.tpl;
 const sharedBuffer = threads.workerData.data;
 let sharedArray = new Int32Array(sharedBuffer);
 let view = new Uint8Array(sharedBuffer);
-
+var oldres = 0;
+var res = 0;
 function int2ip (ipInt) {return ( (ipInt>>>24) +'.' + (ipInt>>16 & 255) +'.' + (ipInt>>8 & 255) +'.' + (ipInt & 255) )}
 if (!Date.now) {Date.now = function() {return new Date().getTime()}}
 
@@ -29,21 +30,16 @@ var started = 0;
 var packetResponce = 0;
 var counter = 0;
 var addr = 0;
+var tms = 0;
 var port = 0;
 var xbytes = (3+(tpl.length-2) * 4); 
+
 for (i=2;i<tpl.length;i++) {
 	if (tpl[i] == 12 || tpl[i] == 15) {xbytes-=2;}
 	if (tpl[i] == 16 || tpl[i] == 17) {xbytes-=3;}
 }       
 
 var sxtm,osxtm;
-var lastcrd = [];
-var olastcrd = [];
-lastcrd[10]=0;
-lastcrd[13]=0;
-olastcrd[10]=0;
-olastcrd[13]=0;
-
 
 function send() {
 
@@ -62,10 +58,28 @@ function send() {
 
 	for (i=2;i<tpl.length;i++) {
 	 pos = (tpl[i])*4;
+	 
 	if (tpl[i]==0) packetResponse[1]=1;
+	
 
+	if (tpl[i]==16) {
+	 oldres = res;
+	 xres = Atomics.load(view,64); // Байт состояния концевиков
 
-	if (tpl[i]==0 || tpl[i]==11 || tpl[i]==14) {
+//	 console.log("=====",view);
+	 if (!xres) {
+	 
+	  	console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",xres,oldres);
+	 	return;
+	 
+	 }
+	 
+	 if (xres && !tms) {tms = Date.now();}
+	 packetResponse[cnt] = xres;
+//		console.log(">>>",res.toString(2));
+	 cnt++;
+
+	} else if (tpl[i]==0 || tpl[i]==11 || tpl[i]==14) {
 		var ttm  = Buffer.from(pxtm,'hex');	
 		 packetResponse[cnt]	= ttm[0];
 		 packetResponse[cnt+1]	= ttm[1];
@@ -74,20 +88,15 @@ function send() {
 		 cnt+=4;
 
   	} else if (tpl[i]==29) {
-
 	    dat = new Date().getTime() & 0xFFFFFFFF;
 		 packetResponse[cnt]	= (dat & 0xFF000000)>>24;
 		 packetResponse[cnt+1]	= (dat & 0x00FF0000)>>16;
 		 packetResponse[cnt+2]	= (dat & 0x0000FF00)>>8;
 		 packetResponse[cnt+3]	=  dat & 0x000000FF;
 		cnt+=4;
-
 	} else if (tpl[i]==12 || tpl[i]==15) {
-
-
 		 packetResponse[cnt] 	= Atomics.load(view,[pos+1]);
 		 packetResponse[cnt+1]	= Atomics.load(view,[pos]);
-
 		 cnt+=2;
 	} else {
 		 packetResponse[cnt]	= Atomics.load(view,[pos+3]);
@@ -97,10 +106,7 @@ function send() {
 		 cnt+=4;
 		if (tpl[i]==10) {
 
-olastcrd[10]=lastcrd[10];
-lastcrd[10] = sharedArray[10];
-//(packetResponse[cnt]<<24) + (packetResponse[cnt+1]<<16) + (packetResponse[cnt+2]<<8) + packetResponse[cnt+3];
-}
+		}
 
 	 }
 
